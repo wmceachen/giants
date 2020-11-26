@@ -13,6 +13,13 @@ def some_numeric_to_str(df: pd.DataFrame):
     df.update(df.sample(int(df.shape[1]/4), axis=1).applymap(str))
     return df
 
+def int_all(df):
+    for col in df:
+        try:
+            df[col] = df[col].apply(int)
+        except:
+            pass
+    return df
 
 def duplicate_df_poorly(df: pd.DataFrame, dup_n: int = 2):
     return pd.concat([df]+[df.mask(np.random.random(df.shape) < .1)]*dup_n)
@@ -21,7 +28,7 @@ def duplicate_df_poorly(df: pd.DataFrame, dup_n: int = 2):
 def dirty_data(df: pd.DataFrame):
     return (df.sample(frac=1, axis=1)  # Shuffle the columns
             # randomly lower the value of column headers
-            .rename(lambda col: col.lower() if uniform(0, 1) < .25 else col, axis='columns')
+            .rename(lambda col: col.upper() if uniform(0, 1) < .25 else col, axis='columns')
             # randomly encase column headers with quotes
             .rename(lambda col: '\'' + col + '\'' if uniform(0, 1) < .25 else col, axis='columns')
             # randomly set numeric columns to string
@@ -59,5 +66,28 @@ def make_db(df_path: str):
 def generate_data():
     make_db('baseball_data.csv')
 
+def undo_everything(db_path:str) -> pd.DataFrame:
+    """For a db path, get back the original data
+
+    Args:
+        db_path (str): path to a DB with an unclean table
+
+    Returns:
+        pd.DataFrame: the original (clean) data
+    """
+    conn = sqlite3.connect(db_path)
+    df = (pd.read_sql("SELECT * FROM df", con=conn)
+        .drop('index', axis=1)
+        .rename(lambda col: col.strip('\''), axis='columns')
+        .rename(lambda col: col.upper(), axis='columns')
+        .drop_duplicates(subset=['ID'])
+        .apply(int_all)
+        )
+    print(df)
+    return df
+
 if __name__ == "__main__":
-    df = dirty_data(pd.read_csv('baseball_data.csv'))
+    generate_data()
+    df = pd.read_csv('baseball_data.csv')
+    # print(df)
+    # print(df.equals(undo_everything('hw.db')))
