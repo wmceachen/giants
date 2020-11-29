@@ -38,6 +38,10 @@ def dirty_data(df: pd.DataFrame):
             .sample(frac=1)
             )
 
+# Generate noisy salaries using a Gaussian
+def noised_predictions(df: pd.DataFrame):
+    salaries = df['salary']
+    return salaries + np.random.normal(0, 30000, len(salaries))
 
 def create_connection(db_file: str):
     """ create a database connection to a SQLite database """
